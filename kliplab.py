@@ -129,6 +129,7 @@ def rdi_klipsub_thrupt(R, T, P, Kcut):
     Z, sv, K = get_trunc_KL_basis(Rs, Kcut)
     # Project target and subtract
     S = Ts - Ts.dot(Z.T).dot(Z)
+    klip_res = np.std(S)
 
     klip_thrupt = np.empty(P.shape[:-1])
     if len(klip_thrupt.shape) == 2:
@@ -143,7 +144,7 @@ def rdi_klipsub_thrupt(R, T, P, Kcut):
             Ps = P[ti] - P_smean
             klip_thrupt[ti] = 1. - (Ps - Ps.dot(Z.T).dot(Z)).dot(Ps.T) / Ps.dot(Ps.T)
 
-    return S, klip_thrupt
+    return S, klip_thrupt, klip_res
 
 def rel_coron_thrupt(Pmod, ref_pos):
     # Given 2-d off-axis PSF model over a set of positions,
