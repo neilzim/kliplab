@@ -14,15 +14,12 @@ import warnings
 from scipy.ndimage.interpolation import *
 from scipy.interpolate import *
 from scipy.optimize import fmin_l_bfgs_b
-from scipy.stats import nanmean, nanmedian
 from scipy.io.idl import readsav
 from shutil import copyfile
 import multiprocessing
 import sys
 import os
 import pdb
-import cPickle as pickle
-
 
 def get_radius_sqrd(shape, c=None):
     if c is None:
