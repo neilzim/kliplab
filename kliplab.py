@@ -1,10 +1,10 @@
 '''
 Neil Zimmerman
-Space Telescope Science Institute
 
 Core toolkit for post-processing coronagraph testbed data
 
 created spring 2016
+revised july 2018 - add subroutine that returns PSF estimate
 '''
 
 import numpy as np
@@ -142,6 +142,42 @@ def rdi_klipsub_thrupt(R, T, P, Kcut):
             klip_thrupt[ti] = 1. - (Ps - Ps.dot(Z.T).dot(Z)).dot(Ps.T) / Ps.dot(Ps.T)
 
     return S, klip_thrupt, klip_res
+
+def rdi_klipsub_psfest_thrupt(R, T, P, Kcut):
+    # Perform KLIP RDI subtraction with Kcut modes,
+    # Return the residual vector array, the PSF estimate vector array, 
+    # and the point source throughput array (based on the projection of 
+    # the off-axis PSF model onto the K-L basis).
+    # R is the reference vector array; N_ref_frame rows and N_pix columns
+    # T is the target vector array; 1 row and N_pix columns
+
+    # Subtract spatial mean from each image vector
+    R_smean = np.tile(np.reshape(np.mean(R, axis=1),(R.shape[0],1)), (1, R.shape[1]))
+    Rs = R - R_smean
+    T_smean = np.tile(np.mean(T, axis=1), (1, T.shape[1]))
+    Ts = T - T_smean
+
+    # Get K-L basis
+    Z, sv, K = get_trunc_KL_basis(Rs, Kcut)
+    # Project target and subtract
+    Ts_hat = Ts.dot(Z.T).dot(Z)
+    S = Ts - Ts_hat
+    klip_res = np.std(S)
+
+    klip_thrupt = np.empty(P.shape[:-1])
+    if len(klip_thrupt.shape) == 2:
+        for si in range(klip_thrupt.shape[0]):
+            for ti in range(klip_thrupt.shape[1]):
+                P_smean = np.tile(np.mean(P[si,ti]), (1, P[si,ti].shape[0]))
+                Ps = P[si,ti] - P_smean
+                klip_thrupt[si, ti] = 1. - Ps.dot(Z.T).dot(Z).dot(Ps.T) / Ps.dot(Ps.T)
+    elif len(klip_thrupt.shape) == 1:
+        for ti in range(klip_thrupt.shape[0]):
+            P_smean = np.tile(np.mean(P[ti]), (1, P[ti].shape[0]))
+            Ps = P[ti] - P_smean
+            klip_thrupt[ti] = 1. - (Ps - Ps.dot(Z.T).dot(Z)).dot(Ps.T) / Ps.dot(Ps.T)
+
+    return S, Ts_hat, klip_thrupt, klip_res
 
 def rel_coron_thrupt(Pmod, ref_pos):
     # Given 2-d off-axis PSF model over a set of positions,
