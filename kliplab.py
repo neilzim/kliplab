@@ -109,7 +109,7 @@ def rdi_klipsub(R, T, Kcut):
 
     return S
 
-def rdi_klipsub_thrupt(R, T, P, Kcut):
+def rdi_klipsub_thrupt(R, T, P, Kcut, halfmaxthresh=False):
     # perform KLIP RDI subtraction with Kcut modes
     # R is the reference vector array; N_ref_frame rows and N_pix columns
     # T is the target vector array; 1 row and N_pix columns
@@ -132,14 +132,22 @@ def rdi_klipsub_thrupt(R, T, P, Kcut):
     if len(klip_thrupt.shape) == 2:
         for si in range(klip_thrupt.shape[0]):
             for ti in range(klip_thrupt.shape[1]):
-                P_smean = np.tile(np.mean(P[si,ti]), (1, P[si,ti].shape[0]))
-                Ps = P[si,ti] - P_smean
-                klip_thrupt[si, ti] = 1. - Ps.dot(Z.T).dot(Z).dot(Ps.T) / Ps.dot(Ps.T)
+                P_smean = np.tile(np.mean(P[si, ti]), (1, P[si, ti].shape[0]))
+                Ps = P[si, ti] - P_smean
+                if halfmaxthresh:
+                    P_hmt = (P[si, ti] >= 0.5 * np.max(P[si, ti])) * P[si, ti]
+                    klip_thrupt[si, ti] = 1. - Ps.dot(Z.T).dot(Z).dot(P_hmt.T) / Ps.dot(P_hmt.T)
+                else:
+                    klip_thrupt[si, ti] = 1. - Ps.dot(Z.T).dot(Z).dot(Ps.T) / Ps.dot(Ps.T)
     elif len(klip_thrupt.shape) == 1:
         for ti in range(klip_thrupt.shape[0]):
             P_smean = np.tile(np.mean(P[ti]), (1, P[ti].shape[0]))
             Ps = P[ti] - P_smean
-            klip_thrupt[ti] = 1. - (Ps - Ps.dot(Z.T).dot(Z)).dot(Ps.T) / Ps.dot(Ps.T)
+            if halfmaxthresh:
+                P_hmt = (P[ti] >= 0.5 * np.max(P[ti])) * P[ti]
+                klip_thrupt[si, ti] = 1. - Ps.dot(Z.T).dot(Z).dot(P_hmt.T) / Ps.dot(P_hmt.T)
+            else:
+                klip_thrupt[ti] = 1. - (Ps - Ps.dot(Z.T).dot(Z)).dot(Ps.T) / Ps.dot(Ps.T)
 
     return S, klip_thrupt, klip_res
 
